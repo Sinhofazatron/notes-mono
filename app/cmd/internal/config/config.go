@@ -14,12 +14,13 @@ type Config struct {
 		Type string `env:"LISTEN_TYPE" env-default:"port"`
 		BindIP string `env:"BIND_IP" env-default:"0.0.0.0"`
 		Port string `env:"PORT" env-default:"10000"`
+		SocketFile string `env:"SOCKET_FILE" env-default:"app.sock"`
 	}
 	AppConfig struct {
-		LogLevel string
+		LogLevel string `env:"LOG_LEVEL" env-default:"trace"`
 		AdminUser struct {
-			Email string `env:"ADMIN_EMAIL" env-default:"true"`
-			Password string `env:"ADMIN_PWD" env-default:"true"`
+			Email string `env:"ADMIN_EMAIL" env-default:"admin"`
+			Password string `env:"ADMIN_PWD" env-default:"admin"`
 		}
 	}
 }
