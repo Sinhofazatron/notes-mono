@@ -4,9 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/jackc/pgx/v4/pgxpool"
 	"net"
 	"net/http"
 	"news-mono/cmd/internal/config"
+	"news-mono/cmd/internal/domain/product/storage"
+	"news-mono/cmd/pkg/client/postgresql"
 	"news-mono/cmd/pkg/logging"
 	"news-mono/cmd/pkg/metric"
 	"os"
@@ -20,10 +23,11 @@ import (
 )
 
 type App struct {
-	cfg *config.Config
-	logger *logging.Logger
-	router *httprouter.Router
+	cfg        *config.Config
+	logger     *logging.Logger
+	router     *httprouter.Router
 	httpServer *http.Server
+	pgClient   *pgxpool.Pool
 }
 
 func NewApp(config *config.Config, logger *logging.Logger) (App, error) {
@@ -38,10 +42,27 @@ func NewApp(config *config.Config, logger *logging.Logger) (App, error) {
 	metricHandler := metric.Handler{}
 	metricHandler.Register(router)
 
+	pgConfig := postgresql.NewPgConfig(
+		config.PostgreSQL.Username, config.PostgreSQL.Password,
+		config.PostgreSQL.Host, config.PostgreSQL.Port, config.PostgreSQL.Database,
+	)
+	pgClient, err := postgresql.NewClient(context.Background(), 5, time.Second*5, pgConfig)
+	if err != nil {
+		logger.Fatal(err)
+	}
+
+	productStorage := storage.NewProductStorage(pgClient, logger)
+	all, err := productStorage.All(context.Background())
+	if err != nil {
+		logger.Fatal(err)
+	}
+	logger.Fatal(all)
+
 	app := App{
-		cfg: config,
-		logger: logger,
-		router: router,
+		cfg:      config,
+		logger:   logger,
+		router:   router,
+		pgClient: pgClient,
 	}
 
 	return app, nil
