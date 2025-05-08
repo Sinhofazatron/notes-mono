@@ -13,14 +13,12 @@ import (
 type ProductStorage struct {
 	queryBuilder sq.StatementBuilderType
 	client       PostgreSQLClient
-	logger       *logging.Logger
 }
 
-func NewProductStorage(client PostgreSQLClient, logger *logging.Logger) ProductStorage {
+func NewProductStorage(client PostgreSQLClient) ProductStorage {
 	return ProductStorage{
 		queryBuilder: sq.StatementBuilder.PlaceholderFormat(sq.Dollar),
 		client:       client,
-		logger:       logger,
 	}
 }
 
@@ -28,14 +26,6 @@ const (
 	scheme = "public"
 	table  = "product"
 )
-
-func (s *ProductStorage) queryLogger(sql, table string, args []interface{}) *logging.Logger {
-	return s.logger.ExtraFields(map[string]interface{}{
-		"sql":   sql,
-		"table": table,
-		"args":  args,
-	})
-}
 
 func (s *ProductStorage) All(ctx context.Context) ([]model.Product, error) {
 	query := s.queryBuilder.Select("id").
@@ -50,7 +40,12 @@ func (s *ProductStorage) All(ctx context.Context) ([]model.Product, error) {
 		From(scheme + "." + table)
 
 	sql, args, err := query.ToSql()
-	logger := s.queryLogger(sql, table, args)
+	logger := logging.GetLogger(ctx).WithFields(map[string]interface{}{
+		"sql":   sql,
+		"table": table,
+		"args":  args,
+	})
+
 	if err != nil {
 		err = db.ErrCreateQuery(err)
 		logger.Error(err)

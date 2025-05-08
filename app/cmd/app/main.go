@@ -1,25 +1,30 @@
 package main
 
 import (
-	"log"
+	"context"
 	"news-mono/cmd/internal/app"
 	"news-mono/cmd/internal/config"
 	"news-mono/cmd/pkg/logging"
 )
 
 func main() {
-	log.Print("config initializing")
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	logger := logging.GetLogger(ctx)
+	logger.Info("config initializing")
+
 	cfg := config.GetConfig()
 
-	log.Print("logger initializing")
-	logger := logging.GetLogger(cfg.AppConfig.LogLevel)
+	ctx = logging.ContextWithLogger(ctx, logger)
 
-	a, err := app.NewApp(cfg, &logger)
+	a, err := app.NewApp(ctx, cfg)
 
 	if err != nil {
 		logger.Fatal(err)
 	}
 
-	logger.Println("Running Application")
-	a.Run()
+	logger.Info("Running Application")
+
+	a.Run(ctx)
 }
